@@ -286,7 +286,22 @@ class Analysis:
         covariance = self.caculate_covariance(data1, data2)
         correlation = covariance/sqrt(variance1 * variance2)
         return correlation
-        
+
+    def correlation_significance(self, data1, data2):
+        correlation = self.caculate_correlation(data1, data2)
+        degree_of_freedom = len(data1) - 2
+        t_value = correlation * sqrt((degree_of_freedom)/(1.0 - correlation**2))
+        p_value = (1 - t.cdf(abs(t_value), degree_of_freedom)) * 2.0
+        return p_value
+    
+    def correlation_results(self, data1, data2):
+        correlation = self.caculate_correlation(data1, data2)
+        p_value = self.correlation_significance(data1, data2)
+        return correlation, p_value
+
+    def anova_test(self):
+        pass
+
 # results = Analysis(df)
 # results.box_plot()
 
@@ -343,16 +358,18 @@ data2 = df_t.loc[df_t['Franchise_Converted'] == 0]['Sold_Price']
 # ** test p value by using original data, without dropping any missing value
 df_t_origin = pd.read_excel('conv store_Toronto_2000-2019.xlsx')
 # t_test_results_display(df_t_origin, 'Franchise')
-data1 = df_t_origin.loc[df_t_origin['Franchise'] == 1]['Sold_Price']
-data2 = df_t_origin.loc[df_t_origin['Franchise'] == 0]['Sold_Price']
-t, p = stats.ttest_ind(data1,data2)
+# data1 = df_t_origin.loc[df_t_origin['Franchise'] == 1]['Sold_Price']
+# data2 = df_t_origin.loc[df_t_origin['Franchise'] == 0]['Sold_Price']
+# t, p = stats.ttest_ind(data1,data2)
 # print(t, p)
 
 def correlation_display(df, variable1, variable2):
-    print('{} {} correlation:'.format(variable1, variable2), \
-        results.caculate_correlation(df[variable1], df[variable2]))
+    correlation, p_value =  results.correlation_results(df[variable1], df[variable2])
+
+    print('{} {}: correlation: {} p_value: {}'.format(variable1, variable2, correlation, p_value))
 
 correlation_display(df, 'Rental_Month', 'Sold_Price')
 correlation_display(df, 'DOM', 'Sold_Price')
 correlation_display(df, 'Area_Size', 'Sold_Price')
 # print(df.corr())
+# print((results.correlation_results(df['Rental_Month'], df['Sold_Price'])**2))
