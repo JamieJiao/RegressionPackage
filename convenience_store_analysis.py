@@ -2,10 +2,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import math
-from scipy.stats import t
-from math import sqrt
-from numpy import mean
-from scipy.stats import sem
 from scipy import stats
 
 df_mississauga = pd.read_excel('Jamie_conv_store_Mississauga_2000-2019.xlsx')
@@ -37,7 +33,7 @@ class ManageMississaugaData:
     #         x = 0
     #     return x
 
-df_toronto = pd.read_excel('conv store_Toronto_2000-2019.xlsx')
+data_manage = pd.read_excel('conv store_Toronto_2000-2019.xlsx')
 
 class ManageTwoData(ManageMississaugaData):
     def __init__(self, df_m, df_t):
@@ -138,27 +134,36 @@ class ManageTwoData(ManageMississaugaData):
                                                 or x == 'Own+Ten' else 0)
 
         return df
+    
+    def creare_dummies_for_opendays(self):
+        df = self.convert_col()
+        # ** only one observation has 4 open days,
+        # ** so we include it into the 5 open days group
+        df['Days_Open_5'] = df['Days_Open'].apply(lambda x: 1 if x == 4 or x == 5 else 0)
+        df['Days_Open_6'] = df['Days_Open'].apply(lambda x: 1 if x == 6 else 0)
+        df['Days_Open_7'] = df['Days_Open'].apply(lambda x: 1 if x == 7 else 0)
+        return df
 
 # df_mississauga = ManageMississaugaData(df_mississauga).add_col_city()
 # df_mississauga_cols = df_mississauga.columns
 
-df_toronto = ManageTwoData(df_mississauga, df_toronto)
-diff_col_names = df_toronto.find_diff_cols_in_two_dataframe(
-    df=df_toronto.df_m, df_being_checked=df_toronto.df_t)
+data_manage = ManageTwoData(df_mississauga, data_manage)
+diff_col_names = data_manage.find_diff_cols_in_two_dataframe(
+    df=data_manage.df_m, df_being_checked=data_manage.df_t)
 
 # print('different columns:', diff_col_names)
 # print('Mississauga Data Columns names:', len(manage_two_datasets.df_m.columns))
 # print('Toronto Data Columns names:', len(manage_two_datasets.add_or_del_cols().columns))
 
 # **double check if there are different columns 
-diff_col_names_new = df_toronto.find_diff_cols_in_two_dataframe(
-    df=df_toronto.df_m, df_being_checked=df_toronto.df_t)
+diff_col_names_new = data_manage.find_diff_cols_in_two_dataframe(
+    df=data_manage.df_m, df_being_checked=data_manage.df_t)
 
 # print('double check if different columns:', diff_col_names_new)
 # print(type(manage_two_datasets.df_m['ID']))
 
 # **combiend_data
-df = df_toronto.convert_col()
+df = data_manage.creare_dummies_for_opendays()
 # print(df)
 # df.to_excel('Combined_Data.xlsx')
 # df.to_excel('Combined_Data_After_Conversion.xlsx')
@@ -225,54 +230,54 @@ class Analysis:
 
     def calculate_sum_of_squares(self, data):
         list_sum_of_squares = []
-        mean_value = mean(data)
+        mean_value = np.mean(data)
         for value in data:
             list_sum_of_squares.append((value - mean_value)**2)
         return sum(list_sum_of_squares)
     
     def calculate_sample_variance(self, data1, data2, degree_of_freedom):
-        mean1, mean2 = mean(data1), mean(data2)
+        mean1, mean2 = np.mean(data1), np.mean(data2)
         sum_of_square_data1 = self.calculate_sum_of_squares(data1)
         sum_of_square_data2 = self.calculate_sum_of_squares(data2)
         return (sum_of_square_data1 + sum_of_square_data2) / degree_of_freedom
 
     def t_test(self, data1, data2):
         degree_of_freedom = len(data1) + len(data2) - 2
-        two_sample_difference = mean(data1) - mean(data2)
+        two_sample_difference = np.mean(data1) - np.mean(data2)
         # sample_variance = self.calculate_sample_variance(data1, data2, degree_of_freedom)
         # ** not assume that two samples have the same variance
         variance1 = self.calculate_sum_of_squares(data1)/(len(data1) - 1)
         variance2 = self.calculate_sum_of_squares(data2)/(len(data2) - 1)
-        t_value = two_sample_difference / sqrt(variance1/len(data1) + variance2/len(data2))
+        t_value = two_sample_difference / math.sqrt(variance1/len(data1) + variance2/len(data2))
         # t_value = two_sample_difference / sqrt(sample_variance/len(data1) + sample_variance/len(data2))
-        p_value = (1.0 - t.cdf(abs(t_value), degree_of_freedom)) * 2.0
-        standard_deviations = (sqrt(variance1), sqrt(variance2))
-        means = (mean(data1), mean(data2))
+        p_value = (1.0 - stats.t.cdf(abs(t_value), degree_of_freedom)) * 2.0
+        standard_deviations = (math.sqrt(variance1), math.sqrt(variance2))
+        means = (np.mean(data1), np.mean(data2))
         return p_value, t_value, standard_deviations, means
 
     def independent_ttest(self, data1, data2, alpha):
         # calculate means
-        mean1, mean2 = mean(data1), mean(data2)
+        mean1, mean2 = np.mean(data1), np.mean(data2)
         # calculate standard errors
-        se1, se2 = sem(data1), sem(data2)
+        se1, se2 = stats.sem(data1), stats.sem(data2)
         # standard error on the difference between the samples
-        sed = sqrt(se1**2.0 + se2**2.0)
+        sed = math.sqrt(se1**2.0 + se2**2.0)
         # calculate the t statistic
         t_stat = (mean1 - mean2) / sed
         # degrees of freedom
         df = len(data1) + len(data2) - 2
         # calculate the critical value
-        cv = t.ppf(1.0 - alpha, df)
+        cv = stats.t.ppf(1.0 - alpha, df)
         # calculate the p-value
-        p = (1.0 - t.cdf(abs(t_stat), df)) * 2.0
+        p = (1.0 - stats.t.cdf(abs(t_stat), df)) * 2.0
         # return everything
         return t_stat, p
     
     def caculate_covariance(self, data1, data2):
         data1_array = data1.values
         data2_array = data2.values
-        mean1 = mean(data1_array)
-        mean2 = mean(data2_array)
+        mean1 = np.mean(data1_array)
+        mean2 = np.mean(data2_array)
         # ** data1 and data2 are two variables, with same number of observations
         observation_num = len(data1_array)
         diff1 = (data1_array - mean1)
@@ -284,23 +289,48 @@ class Analysis:
         variance1 = self.calculate_sum_of_squares(data1)
         variance2 = self.calculate_sum_of_squares(data2)
         covariance = self.caculate_covariance(data1, data2)
-        correlation = covariance/sqrt(variance1 * variance2)
+        correlation = covariance/math.sqrt(variance1 * variance2)
         return correlation
 
     def correlation_significance(self, data1, data2):
         correlation = self.caculate_correlation(data1, data2)
         degree_of_freedom = len(data1) - 2
-        t_value = correlation * sqrt((degree_of_freedom)/(1.0 - correlation**2))
-        p_value = (1 - t.cdf(abs(t_value), degree_of_freedom)) * 2.0
+        t_value = correlation * math.sqrt((degree_of_freedom)/(1.0 - correlation**2))
+        p_value = (1 - stats.t.cdf(abs(t_value), degree_of_freedom)) * 2.0
         return p_value
     
     def correlation_results(self, data1, data2):
         correlation = self.caculate_correlation(data1, data2)
         p_value = self.correlation_significance(data1, data2)
         return correlation, p_value
+    
+    def total_mean_and_obs(self, *arg):
+        total = 0
+        total_obs = 0
+        for data in arg:
+            total += + sum(data)
+            total_obs += + len(data)
+        mean = total / total_obs
+        return total_obs, mean
 
-    def anova_test(self):
-        pass
+    def anova_test(self, *arg):
+        # **sstr: treatment_sum_of_squares, sse: error sum of squares
+        number_of_factor = len(arg)
+        sse = 0
+        sstr = 0
+        total_obs, total_mean = self.total_mean_and_obs(*arg)
+        for i in range(number_of_factor):
+            sse = sse + self.calculate_sum_of_squares(arg[i])
+            sstr = sstr + len(arg[i]) * (np.mean(arg[i]) - total_mean)**2
+        
+        degree_of_freedom_numerator = number_of_factor - 1
+        degree_of_freedom_denominator = total_obs - number_of_factor
+
+        f_value = (sstr/degree_of_freedom_numerator) / (sse/degree_of_freedom_denominator)
+
+        p_value = 1 - stats.f.cdf(f_value, degree_of_freedom_numerator, degree_of_freedom_denominator)
+
+        return f_value, p_value
 
 # results = Analysis(df)
 # results.box_plot()
@@ -356,7 +386,7 @@ data2 = df_t.loc[df_t['Franchise_Converted'] == 0]['Sold_Price']
 # print(t, p)
 
 # ** test p value by using original data, without dropping any missing value
-df_t_origin = pd.read_excel('conv store_Toronto_2000-2019.xlsx')
+# df_t_origin = pd.read_excel('conv store_Toronto_2000-2019.xlsx')
 # t_test_results_display(df_t_origin, 'Franchise')
 # data1 = df_t_origin.loc[df_t_origin['Franchise'] == 1]['Sold_Price']
 # data2 = df_t_origin.loc[df_t_origin['Franchise'] == 0]['Sold_Price']
@@ -373,3 +403,9 @@ correlation_display(df, 'DOM', 'Sold_Price')
 correlation_display(df, 'Area_Size', 'Sold_Price')
 # print(df.corr())
 # print((results.correlation_results(df['Rental_Month'], df['Sold_Price'])**2))
+
+open_days_5 = df.loc[df['Days_Open_5'] == 1]['Sold_Price']
+open_days_6 = df.loc[df['Days_Open_6'] == 1]['Sold_Price']
+open_days_7 = df.loc[df['Days_Open_7'] == 1]['Sold_Price']
+f, p = results.anova_test(open_days_5, open_days_6, open_days_7)
+print('f test for open days 5, 6, 7: ', f, p)
