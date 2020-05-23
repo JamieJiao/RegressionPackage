@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 from scipy import stats
+from datetime import datetime 
 
 df_mississauga = pd.read_excel('Jamie_conv_store_Mississauga_2000-2019.xlsx')
 
@@ -33,7 +34,7 @@ class ManageMississaugaData:
     #         x = 0
     #     return x
 
-data_manage = pd.read_excel('conv store_Toronto_2000-2019.xlsx')
+df_t = pd.read_excel('conv store_Toronto_2000-2019.xlsx')
 
 class ManageTwoData(ManageMississaugaData):
     def __init__(self, df_m, df_t):
@@ -70,18 +71,21 @@ class ManageTwoData(ManageMississaugaData):
 
         return df_t
     
-    def add_or_del_cols(self):
+    def modify_data_in_cols(self):
         df_t = self.change_col_names_as_first_dataset()
         df_t['ID'] = self.create_id()
         df_t['City'] = 'Toronto'
         df_t['cont date'] = 'NaN'
         df_t['sales/per week'] = 'NaN'
         df_t.drop(['Zoning', 'Park_Space', 'Garage'], axis=1, inplace=True)
+        df_t['sold date'] = df_t['sold date'].apply(lambda x: \
+                                                datetime.strptime(str(x), \
+                                                '%Y-%m-%d %H:%M:%S').strftime('%m/%d/%Y'))
         return df_t
 
     def concat_data_series(self):
         df_m = self.df_m
-        df_t = self.add_or_del_cols()
+        df_t = self.modify_data_in_cols()
         obs_num = len(df_m) + len(df_t)
         col_num = len(df_m.columns)
         values_dic = {}
@@ -132,7 +136,9 @@ class ManageTwoData(ManageMississaugaData):
 
         df['Occupation_Converted'] = df['Occupation'].apply(lambda x: 1 if x == 'Owner' \
                                                 or x == 'Own+Ten' else 0)
+        df['Year'] = df['Sold_Date'].apply(lambda x: int(x.split('/')[-1]))
 
+        df.sort_values('Year', ascending=True, inplace=True)
         return df
     
     def creare_dummies_for_opendays(self):
@@ -147,23 +153,23 @@ class ManageTwoData(ManageMississaugaData):
 # df_mississauga = ManageMississaugaData(df_mississauga).add_col_city()
 # df_mississauga_cols = df_mississauga.columns
 
-data_manage = ManageTwoData(df_mississauga, data_manage)
-diff_col_names = data_manage.find_diff_cols_in_two_dataframe(
-    df=data_manage.df_m, df_being_checked=data_manage.df_t)
+df_t = ManageTwoData(df_mississauga, df_t)
+diff_col_names = df_t.find_diff_cols_in_two_dataframe(
+    df=df_t.df_m, df_being_checked=df_t.df_t)
 
 # print('different columns:', diff_col_names)
 # print('Mississauga Data Columns names:', len(manage_two_datasets.df_m.columns))
 # print('Toronto Data Columns names:', len(manage_two_datasets.add_or_del_cols().columns))
 
 # **double check if there are different columns 
-diff_col_names_new = data_manage.find_diff_cols_in_two_dataframe(
-    df=data_manage.df_m, df_being_checked=data_manage.df_t)
+diff_col_names_new = df_t.find_diff_cols_in_two_dataframe(
+    df=df_t.df_m, df_being_checked=df_t.df_t)
 
 # print('double check if different columns:', diff_col_names_new)
 # print(type(manage_two_datasets.df_m['ID']))
 
 # **combiend_data
-df = data_manage.creare_dummies_for_opendays()
+df = df_t.creare_dummies_for_opendays()
 # print(df)
 # df.to_excel('Combined_Data.xlsx')
 # df.to_excel('Combined_Data_After_Conversion.xlsx')
@@ -222,10 +228,10 @@ class Analysis:
 
         return df_outliers
     
-    def scatter_plot(self, df_col_name):
-        plt.plot(self.df[df_col_name], self.df.iloc[:, 0], 'bv', mfc='red')
-        plt.xlabel(df_col_name,fontsize=16)
-        plt.ylabel('Sold_Price',fontsize=16)
+    def scatter_plot(self, data1, data2):
+        plt.plot(data1, data2, 'bv', mfc='red')
+        plt.xlabel(data1.name,fontsize=16)
+        plt.ylabel(data2.name,fontsize=16)
         plt.show()
 
     def calculate_sum_of_squares(self, data):
@@ -327,7 +333,6 @@ class Analysis:
         degree_of_freedom_denominator = total_obs - number_of_factor
 
         f_value = (sstr/degree_of_freedom_numerator) / (sse/degree_of_freedom_denominator)
-
         p_value = 1 - stats.f.cdf(f_value, degree_of_freedom_numerator, degree_of_freedom_denominator)
 
         return f_value, p_value
@@ -356,22 +361,34 @@ try:
 except:
     pass
 # ** find which relationship between Sold_Price and other variables
-# results.scatter_plot('Area_Size')
-# results.scatter_plot('DOM')
-# results.scatter_plot('Rental_Month')
+# results.scatter_plot(df['Area_Size'], df['Sold_Price'])
+# results.scatter_plot(df['DOM'], df['Sold_Price'])
+# results.scatter_plot(df['Rental_Month'], df['Sold_Price'])
 
-def t_test_results_display(df, variable):
-    data1 = df.loc[df[variable] == 1]['Sold_Price']
-    data2 = df.loc[df[variable] == 0]['Sold_Price']
+def t_test_results_display(df, variable, price_per_square_feet=False):
+    if price_per_square_feet:
+        data1 = df.loc[df[variable] == 1]['Sold_Price'] / df.loc[df[variable] == 1]['Area_Size']
+        data2 = df.loc[df[variable] == 0]['Sold_Price'] / df.loc[df[variable] == 0]['Area_Size']
+    else:
+        data1 = df.loc[df[variable] == 1]['Sold_Price']
+        data2 = df.loc[df[variable] == 0]['Sold_Price']
     p_value, t_value, means, stds = results.t_test(data1, data2)
     print('{}:\n'.format(variable.replace('_Converted', '')), \
         'p value:',p_value, '\n', 't value', t_value, '\n', 'means:', means, \
         '\n', 'standard deviations:', stds)
 
-# t_test_results_display(df, 'Franchise_Converted')
-# t_test_results_display(df, 'Garage_Type_Converted')
-# t_test_results_display(df, 'Lottery_Converted')
-# t_test_results_display(df, 'Occupation_Converted')
+print('Total Sold Price:')
+t_test_results_display(df, 'Franchise_Converted')
+t_test_results_display(df, 'Garage_Type_Converted')
+t_test_results_display(df, 'Lottery_Converted')
+t_test_results_display(df, 'Occupation_Converted')
+print('\n')
+print('Sold Price Per Square Feet:')
+t_test_results_display(df, 'Franchise_Converted', price_per_square_feet=True)
+t_test_results_display(df, 'Garage_Type_Converted', price_per_square_feet=True)
+t_test_results_display(df, 'Lottery_Converted', price_per_square_feet=True)
+t_test_results_display(df, 'Occupation_Converted', price_per_square_feet=True)
+
 
 # ** check data for both cities separately
 df_m = df.loc[df['City'] == 'Mississauga']
@@ -398,14 +415,16 @@ def correlation_display(df, variable1, variable2):
 
     print('{} {}: correlation: {} p_value: {}'.format(variable1, variable2, correlation, p_value))
 
-correlation_display(df, 'Rental_Month', 'Sold_Price')
-correlation_display(df, 'DOM', 'Sold_Price')
-correlation_display(df, 'Area_Size', 'Sold_Price')
-# print(df.corr())
-# print((results.correlation_results(df['Rental_Month'], df['Sold_Price'])**2))
+# correlation_display(df, 'Rental_Month', 'Sold_Price')
+# correlation_display(df, 'DOM', 'Sold_Price')
+# correlation_display(df, 'Area_Size', 'Sold_Price')
 
 open_days_5 = df.loc[df['Days_Open_5'] == 1]['Sold_Price']
 open_days_6 = df.loc[df['Days_Open_6'] == 1]['Sold_Price']
 open_days_7 = df.loc[df['Days_Open_7'] == 1]['Sold_Price']
 f, p = results.anova_test(open_days_5, open_days_6, open_days_7)
-print('f test for open days 5, 6, 7: ', f, p)
+# print('anova test for open days 5, 6, 7: ', f, p)
+
+# ** check if there is time effect
+results.scatter_plot(df['Year'], df['Sold_Price'])
+correlation_display(df, 'Year', 'Sold_Price')
