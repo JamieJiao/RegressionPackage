@@ -364,6 +364,13 @@ except:
 # results.scatter_plot(df['Area_Size'], df['Sold_Price'])
 # results.scatter_plot(df['DOM'], df['Sold_Price'])
 # results.scatter_plot(df['Rental_Month'], df['Sold_Price'])
+# ** check if there is time effect
+# results.scatter_plot(df['Year'], df['Sold_Price'])
+
+# results.scatter_plot(df['Area_Size'], df['Sold_Price']/df['Area_Size'])
+# results.scatter_plot(df['DOM'], df['Sold_Price']/df['Area_Size'])
+# results.scatter_plot(df['Rental_Month'], df['Sold_Price']/df['Area_Size'])
+# results.scatter_plot(df['Year'], df['Sold_Price']/df['Area_Size'])
 
 def t_test_results_display(df, variable, price_per_square_feet=False):
     if price_per_square_feet:
@@ -388,9 +395,9 @@ t_test_results_display(df, 'Franchise_Converted', price_per_square_feet=True)
 t_test_results_display(df, 'Garage_Type_Converted', price_per_square_feet=True)
 t_test_results_display(df, 'Lottery_Converted', price_per_square_feet=True)
 t_test_results_display(df, 'Occupation_Converted', price_per_square_feet=True)
+print('\n')
 
-
-# ** check data for both cities separately
+# ** t test for both cities data separately
 df_m = df.loc[df['City'] == 'Mississauga']
 df_t = df.loc[df['City'] == 'Toronto']
 # t_test_results_display(df_t, 'Franchise_Converted')
@@ -410,21 +417,36 @@ data2 = df_t.loc[df_t['Franchise_Converted'] == 0]['Sold_Price']
 # t, p = stats.ttest_ind(data1,data2)
 # print(t, p)
 
-def correlation_display(df, variable1, variable2):
-    correlation, p_value =  results.correlation_results(df[variable1], df[variable2])
-
+def correlation_display(df, variable1, variable2, price_per_square_feet=False):
+    if price_per_square_feet:
+        data1 = df[variable1]
+        data2 = df[variable2]/df['Area_Size']
+    else:
+        data1 = df[variable1]
+        data2 = df[variable2]
+    correlation, p_value =  results.correlation_results(data1, data2)
     print('{} {}: correlation: {} p_value: {}'.format(variable1, variable2, correlation, p_value))
 
-# correlation_display(df, 'Rental_Month', 'Sold_Price')
-# correlation_display(df, 'DOM', 'Sold_Price')
-# correlation_display(df, 'Area_Size', 'Sold_Price')
+print('correlation with sold price:')
+correlation_display(df, 'Rental_Month', 'Sold_Price')
+correlation_display(df, 'DOM', 'Sold_Price')
+correlation_display(df, 'Area_Size', 'Sold_Price')
+# ** check if there is time effect
+correlation_display(df, 'Year', 'Sold_Price')
+print('\n')
+print('correlation with sold price per square feet:')
+correlation_display(df, 'Rental_Month', 'Sold_Price', price_per_square_feet=True)
+correlation_display(df, 'DOM', 'Sold_Price', price_per_square_feet=True)
+correlation_display(df, 'Year', 'Sold_Price', price_per_square_feet=True)
+print('\n')
 
 open_days_5 = df.loc[df['Days_Open_5'] == 1]['Sold_Price']
 open_days_6 = df.loc[df['Days_Open_6'] == 1]['Sold_Price']
 open_days_7 = df.loc[df['Days_Open_7'] == 1]['Sold_Price']
 f, p = results.anova_test(open_days_5, open_days_6, open_days_7)
-# print('anova test for open days 5, 6, 7: ', f, p)
-
-# ** check if there is time effect
-results.scatter_plot(df['Year'], df['Sold_Price'])
-correlation_display(df, 'Year', 'Sold_Price')
+print('anova test for open days 5, 6, 7 with sold price: ', f, p)
+open_days_5_size_price = df.loc[df['Days_Open_5'] == 1]['Sold_Price']/df.loc[df['Days_Open_5'] == 1]['Area_Size']
+open_days_6_size_price = df.loc[df['Days_Open_6'] == 1]['Sold_Price']/df.loc[df['Days_Open_6'] == 1]['Area_Size']
+open_days_7_size_price = df.loc[df['Days_Open_7'] == 1]['Sold_Price']/df.loc[df['Days_Open_7'] == 1]['Area_Size']
+f, p = results.anova_test(open_days_5_size_price, open_days_6_size_price, open_days_7_size_price)
+print('anova test for open days 5, 6, 7 with sold price per square feet: ', f, p)
