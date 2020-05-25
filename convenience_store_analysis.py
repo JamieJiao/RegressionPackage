@@ -3,7 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 from scipy import stats
-from datetime import datetime 
+from datetime import datetime
+import statsmodels.api as sm 
 
 df_mississauga = pd.read_excel('Jamie_conv_store_Mississauga_2000-2019.xlsx')
 
@@ -139,6 +140,7 @@ class ManageTwoData(ManageMississaugaData):
         df['Year'] = df['Sold_Date'].apply(lambda x: int(x.split('/')[-1]))
 
         df.sort_values('Year', ascending=True, inplace=True)
+        df.drop(['ID', 'Sales_Per_Week', ], axis=1, inplace=True)
         return df
     
     def creare_dummies_for_opendays(self):
@@ -384,18 +386,19 @@ def t_test_results_display(df, variable, price_per_square_feet=False):
         'p value:',p_value, '\n', 't value', t_value, '\n', 'means:', means, \
         '\n', 'standard deviations:', stds)
 
-print('Total Sold Price:')
-t_test_results_display(df, 'Franchise_Converted')
-t_test_results_display(df, 'Garage_Type_Converted')
-t_test_results_display(df, 'Lottery_Converted')
-t_test_results_display(df, 'Occupation_Converted')
-print('\n')
-print('Sold Price Per Square Feet:')
-t_test_results_display(df, 'Franchise_Converted', price_per_square_feet=True)
-t_test_results_display(df, 'Garage_Type_Converted', price_per_square_feet=True)
-t_test_results_display(df, 'Lottery_Converted', price_per_square_feet=True)
-t_test_results_display(df, 'Occupation_Converted', price_per_square_feet=True)
-print('\n')
+# ** t test
+# print('Total Sold Price:')
+# t_test_results_display(df, 'Franchise_Converted')
+# t_test_results_display(df, 'Garage_Type_Converted')
+# t_test_results_display(df, 'Lottery_Converted')
+# t_test_results_display(df, 'Occupation_Converted')
+# print('\n')
+# print('Sold Price Per Square Feet:')
+# t_test_results_display(df, 'Franchise_Converted', price_per_square_feet=True)
+# t_test_results_display(df, 'Garage_Type_Converted', price_per_square_feet=True)
+# t_test_results_display(df, 'Lottery_Converted', price_per_square_feet=True)
+# t_test_results_display(df, 'Occupation_Converted', price_per_square_feet=True)
+# print('\n')
 
 # ** t test for both cities data separately
 df_m = df.loc[df['City'] == 'Mississauga']
@@ -427,26 +430,77 @@ def correlation_display(df, variable1, variable2, price_per_square_feet=False):
     correlation, p_value =  results.correlation_results(data1, data2)
     print('{} {}: correlation: {} p_value: {}'.format(variable1, variable2, correlation, p_value))
 
-print('correlation with sold price:')
-correlation_display(df, 'Rental_Month', 'Sold_Price')
-correlation_display(df, 'DOM', 'Sold_Price')
-correlation_display(df, 'Area_Size', 'Sold_Price')
-# ** check if there is time effect
-correlation_display(df, 'Year', 'Sold_Price')
-print('\n')
-print('correlation with sold price per square feet:')
-correlation_display(df, 'Rental_Month', 'Sold_Price', price_per_square_feet=True)
-correlation_display(df, 'DOM', 'Sold_Price', price_per_square_feet=True)
-correlation_display(df, 'Year', 'Sold_Price', price_per_square_feet=True)
-print('\n')
+# ** correlation check
+# print('correlation with sold price:')
+# correlation_display(df, 'Rental_Month', 'Sold_Price')
+# correlation_display(df, 'DOM', 'Sold_Price')
+# correlation_display(df, 'Area_Size', 'Sold_Price')
+# # ** check if there is time effect
+# correlation_display(df, 'Year', 'Sold_Price')
+# print('\n')
+# print('correlation with sold price per square feet:')
+# correlation_display(df, 'Rental_Month', 'Sold_Price', price_per_square_feet=True)
+# correlation_display(df, 'DOM', 'Sold_Price', price_per_square_feet=True)
+# correlation_display(df, 'Year', 'Sold_Price', price_per_square_feet=True)
+# print('\n')
 
-open_days_5 = df.loc[df['Days_Open_5'] == 1]['Sold_Price']
-open_days_6 = df.loc[df['Days_Open_6'] == 1]['Sold_Price']
-open_days_7 = df.loc[df['Days_Open_7'] == 1]['Sold_Price']
-f, p = results.anova_test(open_days_5, open_days_6, open_days_7)
-print('anova test for open days 5, 6, 7 with sold price: ', f, p)
-open_days_5_size_price = df.loc[df['Days_Open_5'] == 1]['Sold_Price']/df.loc[df['Days_Open_5'] == 1]['Area_Size']
-open_days_6_size_price = df.loc[df['Days_Open_6'] == 1]['Sold_Price']/df.loc[df['Days_Open_6'] == 1]['Area_Size']
-open_days_7_size_price = df.loc[df['Days_Open_7'] == 1]['Sold_Price']/df.loc[df['Days_Open_7'] == 1]['Area_Size']
-f, p = results.anova_test(open_days_5_size_price, open_days_6_size_price, open_days_7_size_price)
-print('anova test for open days 5, 6, 7 with sold price per square feet: ', f, p)
+# ** anova test
+# open_days_5 = df.loc[df['Days_Open_5'] == 1]['Sold_Price']
+# open_days_6 = df.loc[df['Days_Open_6'] == 1]['Sold_Price']
+# open_days_7 = df.loc[df['Days_Open_7'] == 1]['Sold_Price']
+# f, p = results.anova_test(open_days_5, open_days_6, open_days_7)
+# print('anova test for open days 5, 6, 7 with sold price: ', f, p)
+# open_days_5_size_price = df.loc[df['Days_Open_5'] == 1]['Sold_Price']/df.loc[df['Days_Open_5'] == 1]['Area_Size']
+# open_days_6_size_price = df.loc[df['Days_Open_6'] == 1]['Sold_Price']/df.loc[df['Days_Open_6'] == 1]['Area_Size']
+# open_days_7_size_price = df.loc[df['Days_Open_7'] == 1]['Sold_Price']/df.loc[df['Days_Open_7'] == 1]['Area_Size']
+# f, p = results.anova_test(open_days_5_size_price, open_days_6_size_price, open_days_7_size_price)
+# print('anova test for open days 5, 6, 7 with sold price per square feet: ', f, p)
+
+pd.set_option('display.max_columns', 500)
+pearson_correlation = df.corr(method='pearson')
+# df['Sold_Price_Per_SqaureFeet'] = df['Sold_Price']/df['Area_Size']
+pearson_correlation = df.corr(method='pearson')
+print(pearson_correlation)
+
+df_variables_included = df[['Sold_Price', 'Area_Size', 'Rental_Month', \
+                                'Lottery_Converted', 'Occupation_Converted', 'Year', \
+                                    'Days_Open_5', 'Days_Open_6', 'Days_Open_7']]
+
+class RegressionAnalysis(Analysis):
+    def __init__(self, df):
+        Analysis.__init__(self, df)
+        self.df = df
+
+    def exclude_col_name(self, variable_name):
+        col_names = []
+        for col_name in self.df.columns:
+            if col_name != variable_name:
+                col_names.append(col_name)
+        # ** exclude y
+        return col_names[1:]
+
+    def linear_regression(self, y, X):
+        X = sm.add_constant(X)
+        model = sm.OLS(y, X)
+        results = model.fit()
+        return results
+
+    def vif_results(self, *arg):
+        vifs = {}
+        r_squares = {}
+        for variable_name in arg:
+            variables_names = self.exclude_col_name(variable_name)
+            variables_value = self.df[variables_names]
+            variable_value = self.df[variable_name]
+            r_square = self.linear_regression(variable_value, variables_value).rsquared
+            vif = 1 / (1 - r_square)
+            vifs[variable_name] = vif
+            r_squares[variable_name] = r_square
+        return vifs, r_squares
+
+
+regression_analysis = RegressionAnalysis(df_variables_included)
+vifs, r_squares = regression_analysis.vif_results('Area_Size', 'Rental_Month', 'Lottery_Converted', \
+                                        'Occupation_Converted', 'Year')
+print('r squares:', r_squares, '\n')
+print('VIF:', vifs)
