@@ -140,7 +140,7 @@ class ManageTwoData(ManageMississaugaData):
         df['Year'] = df['Sold_Date'].apply(lambda x: int(x.split('/')[-1]))
 
         df.sort_values('Year', ascending=True, inplace=True)
-        df.drop(['ID', 'Sales_Per_Week', ], axis=1, inplace=True)
+        df.drop(['ID', 'Sales_Per_Week'], axis=1, inplace=True)
         return df
     
     def creare_dummies_for_opendays(self):
@@ -460,7 +460,7 @@ pd.set_option('display.max_columns', 500)
 pearson_correlation = df.corr(method='pearson')
 # df['Sold_Price_Per_SqaureFeet'] = df['Sold_Price']/df['Area_Size']
 pearson_correlation = df.corr(method='pearson')
-print(pearson_correlation)
+# print(pearson_correlation)
 
 df_variables_included = df[['Sold_Price', 'Area_Size', 'Rental_Month', \
                                 'Lottery_Converted', 'Occupation_Converted', 'Year', \
@@ -470,7 +470,7 @@ class RegressionAnalysis(Analysis):
     def __init__(self, df):
         Analysis.__init__(self, df)
         self.df = df
-
+        # super().__init__(df)
     def exclude_col_name(self, variable_name):
         col_names = []
         for col_name in self.df.columns:
@@ -498,9 +498,31 @@ class RegressionAnalysis(Analysis):
             r_squares[variable_name] = r_square
         return vifs, r_squares
 
+    def calculate_sum_of_squares(self, data):
+        return super().calculate_sum_of_squares(data)
 
 regression_analysis = RegressionAnalysis(df_variables_included)
 vifs, r_squares = regression_analysis.vif_results('Area_Size', 'Rental_Month', 'Lottery_Converted', \
                                         'Occupation_Converted', 'Year')
-print('r squares:', r_squares, '\n')
-print('VIF:', vifs)
+# print('r squares:', r_squares, '\n')
+# print('VIF:', vifs)
+
+# ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+#                                                 df_variables_included.iloc[:, 1:])
+ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+                                                df[['Area_Size','Lottery_Converted', \
+                                                'Occupation_Converted', 'Year', \
+                                    'Days_Open_5', 'Days_Open_6', 'Days_Open_7']])
+print(ols.summary())
+
+# plt.hist(results.resid, bins=10, density=True)
+# plt.show()
+residuals = ols.resid
+mu = np.mean(residuals)
+sigma = np.sqrt(regression_analysis.calculate_sum_of_squares(residuals) / len(residuals))
+
+count, bins, ignored = plt.hist(residuals, 30, density=True)
+plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) * \
+    np.exp( - (bins - mu)**2 / (2 * sigma**2) ),linewidth=2, color='r')
+
+plt.show()
