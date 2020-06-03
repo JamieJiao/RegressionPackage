@@ -121,7 +121,7 @@ class ManageTwoData(ManageMississaugaData):
     
     def drop_nan(self):
         df = self.combine_data()
-        df = df[df['Rental_Month'].notna()]
+        # df = df[df['Rental_Month'].notna()]
         df = df[df['Area_Size'].notna()]
         df = df[df['Days_Open'].notna()]
         return df
@@ -138,6 +138,7 @@ class ManageTwoData(ManageMississaugaData):
         df['Occupation_Converted'] = df['Occupation'].apply(lambda x: 1 if x == 'Owner' \
                                                 or x == 'Own+Ten' else 0)
         df['Year'] = df['Sold_Date'].apply(lambda x: int(x.split('/')[-1]))
+        df['City_Converted'] = df['City'].apply(lambda x: 1 if x == 'Mississauga' else 0)
 
         df.sort_values('Year', ascending=True, inplace=True)
         df.drop(['ID', 'Sales_Per_Week'], axis=1, inplace=True)
@@ -156,6 +157,7 @@ class ManageTwoData(ManageMississaugaData):
 # df_mississauga_cols = df_mississauga.columns
 
 df_t = ManageTwoData(df_mississauga, df_t)
+
 diff_col_names = df_t.find_diff_cols_in_two_dataframe(
     df=df_t.df_m, df_being_checked=df_t.df_t)
 
@@ -172,7 +174,6 @@ diff_col_names_new = df_t.find_diff_cols_in_two_dataframe(
 
 # **combiend_data
 df = df_t.creare_dummies_for_opendays()
-# print(df)
 # df.to_excel('Combined_Data.xlsx')
 # df.to_excel('Combined_Data_After_Conversion.xlsx')
 
@@ -392,6 +393,7 @@ def t_test_results_display(df, variable, price_per_square_feet=False):
 # t_test_results_display(df, 'Garage_Type_Converted')
 # t_test_results_display(df, 'Lottery_Converted')
 # t_test_results_display(df, 'Occupation_Converted')
+t_test_results_display(df, 'City_Converted')
 # print('\n')
 # print('Sold Price Per Square Feet:')
 # t_test_results_display(df, 'Franchise_Converted', price_per_square_feet=True)
@@ -470,7 +472,7 @@ class RegressionAnalysis(Analysis):
     def __init__(self, df):
         Analysis.__init__(self, df)
         self.df = df
-        # super().__init__(df)
+
     def exclude_col_name(self, variable_name):
         col_names = []
         for col_name in self.df.columns:
@@ -501,28 +503,126 @@ class RegressionAnalysis(Analysis):
     def calculate_sum_of_squares(self, data):
         return super().calculate_sum_of_squares(data)
 
+df_variables_included['Size_Franchise'] = df['Area_Size'] * \
+                                            df['Franchise_Converted']
+df_variables_included['Size_GarageType'] =df['Garage_Type_Converted'] * \
+                                            df['Area_Size']
 regression_analysis = RegressionAnalysis(df_variables_included)
-vifs, r_squares = regression_analysis.vif_results('Area_Size', 'Rental_Month', 'Lottery_Converted', \
-                                        'Occupation_Converted', 'Year')
+# vifs, r_squares = regression_analysis.vif_results('Area_Size', 'Rental_Month', 'Lottery_Converted', \
+#                                         'Occupation_Converted', 'Year', 'Size_Franchise', \
+#                                             'Size_GarageType')
+# vifs, r_squares = regression_analysis.vif_results('Area_Size', 'Lottery_Converted', \
+#                                         'Occupation_Converted', 'Year', 'Size_Franchise', \
+#                                             'Size_GarageType')
 # print('r squares:', r_squares, '\n')
 # print('VIF:', vifs)
 
+# ** ---------------------------wonder if there is correlation between size 
+# ** ---------------------------and size multiplying Franchise and garage
+# corr, p = regression_analysis.correlation_results(df_variables_included['Area_Size'], \
+#     df_variables_included['Size_Franchise'])
+# print('Size vs Size_Franchise:', 'Correlation:', corr, 'p_value:', p)
+# corr, p = regression_analysis.correlation_results(df_variables_included['Area_Size'], \
+#     df_variables_included['Size_GarageType'])
+# print('Size vs Size_GarageType:', 'Correlation:', corr, 'p_value:', p)
+
+# ** ---------------------------regression with full variables
 # ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
 #                                                 df_variables_included.iloc[:, 1:])
+# ** ---------------------------regression reduced model
+# ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+#                                                 df_variables_included[['Area_Size','Rental_Month', \
+#                                                     'Lottery_Converted', \
+#                                                 'Occupation_Converted']])
+# ** ---------------------------regression without rental (variable rental has too many missing values)
+# ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+#                                                 df_variables_included[['Area_Size','Lottery_Converted', \
+#                                                 'Occupation_Converted', 'Year', \
+#                                     'Days_Open_5', 'Days_Open_6', 'Days_Open_7']])
+# ** ---------------------------without rental, try only significant variables, reduced model
+# ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+#                                                 df_variables_included[['Area_Size','Lottery_Converted']])
+# ** ---------------------------without rental, reduced model, with variables related to size, 
+# ** ---------------------------mutilplying size
 ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
-                                                df[['Area_Size','Lottery_Converted', \
-                                                'Occupation_Converted', 'Year', \
-                                    'Days_Open_5', 'Days_Open_6', 'Days_Open_7']])
-print(ols.summary())
+                                                df_variables_included[['Area_Size','Lottery_Converted', \
+                                                    'Size_Franchise', 'Size_GarageType']])
+# ** ---------------------------without size, full model
+# ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+#                                                 df_variables_included[['Rental_Month','Lottery_Converted', \
+#                                                 'Occupation_Converted', 'Year', \
+#                                     'Days_Open_5', 'Days_Open_6', 'Days_Open_7']])
+# ** ---------------------------without size, reduced model
+# ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+#                                                 df_variables_included[['Rental_Month','Lottery_Converted', \
+#                                                   'Occupation_Converted']])
+# ** ---------------------------without size, reduced model, with variables related to size, mutilplying size
+# ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+#                                                 df_variables_included[['Rental_Month','Lottery_Converted', \
+#                                                 'Occupation_Converted', \
+#                                                     'Size_Franchise', 'Size_GarageType']])
+# ** regression with rental per square feet, in order to remove the strong correlation between
+# ** Area_Size and Rental_Month
+# df_variables_included['Rental_per_SquareFeet'] = df_variables_included['Rental_Month']/ \
+#                                                 df_variables_included['Area_Size']
+# ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+#                                                 df_variables_included[['Rental_per_SquareFeet', \
+#                                                     'Lottery_Converted', \
+#                                                 'Occupation_Converted']])
+# print(df_variables_included['Rental_per_SquareFeet'])
 
-# plt.hist(results.resid, bins=10, density=True)
-# plt.show()
+# print(ols.summary())
+
 residuals = ols.resid
+# print(residuals)
+# ** residuals distribution plot
 mu = np.mean(residuals)
 sigma = np.sqrt(regression_analysis.calculate_sum_of_squares(residuals) / len(residuals))
 
 count, bins, ignored = plt.hist(residuals, 30, density=True)
 plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) * \
     np.exp( - (bins - mu)**2 / (2 * sigma**2) ),linewidth=2, color='r')
-
 plt.show()
+
+def plot_residulas_against_var(residual, df, *arg):
+    var_num = len(arg)
+    if var_num < 3:
+        col_num = var_num
+    else:
+        col_num = 3
+
+    row_num = math.ceil(var_num/col_num)
+    fig, axs = plt.subplots(row_num, col_num, figsize=(15,6))
+    var_index = 0
+    
+    for row in range(row_num):
+        for col in range(col_num):
+            axs[row, col].plot(df[arg[var_index]], residual, 'bv', mfc='red')
+            if df[arg[var_index]].name == 'Area_Size':
+                axs[row, col].set_xlim(0, 3000)
+            elif df[arg[var_index]].name == 'Rental_Month':
+                axs[row, col].set_xlim(0, 7000)
+            elif df[arg[var_index]].name == 'Year':
+                axs[row, col].set_xlim(2000, 2020)
+            else:
+                axs[row, col].set_xlim(-1, 2)
+            axs[row, col].set_xlabel(df[arg[var_index]].name)
+            axs[row, col].set_ylabel('Residual')
+            axs[row, col].set_title(df[arg[var_index]].name)
+            var_index += 1
+            if var_index == var_num:
+                break
+    fig.subplots_adjust(left=0.08, right=0.98, bottom=0.05, top=0.9,
+                    hspace=0.7, wspace=0.7)
+    plt.show()
+
+# plot_residulas_against_var(residuals, df_variables_included, 'Area_Size','Lottery_Converted', \
+#                                                 'Occupation_Converted', 'Year', \
+#                                     'Days_Open_5', 'Days_Open_6', 'Days_Open_7')
+# plot_residulas_against_var(residuals, df_variables_included, 'Area_Size','Lottery_Converted', \
+#                                                 'Occupation_Converted')
+# plot_residulas_against_var(residuals, df_variables_included, 'Rental_Month','Lottery_Converted', \
+#                                                 'Occupation_Converted', 'Year', \
+#                                     'Days_Open_5', 'Days_Open_6', 'Days_Open_7')
+# plot_residulas_against_var(residuals, df_variables_included, 'Area_Size','Lottery_Converted', \
+#                                                 'Size_Franchise', 'Size_GarageType')
