@@ -121,7 +121,7 @@ class ManageTwoData(ManageMississaugaData):
     
     def drop_nan(self):
         df = self.combine_data()
-        # df = df[df['Rental_Month'].notna()]
+        df = df[df['Rental_Month'].notna()]
         df = df[df['Area_Size'].notna()]
         df = df[df['Days_Open'].notna()]
         return df
@@ -544,9 +544,12 @@ regression_analysis = RegressionAnalysis(df_variables_included)
 #                                                 df_variables_included[['Area_Size','Lottery_Converted']])
 # ** ---------------------------without rental, reduced model, with variables related to size, 
 # ** ---------------------------mutilplying size
-ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
-                                                df_variables_included[['Area_Size','Lottery_Converted', \
-                                                    'Size_Franchise', 'Size_GarageType']])
+# ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+#                                                 df_variables_included[['Area_Size','Lottery_Converted', \
+#                                                     'Size_Franchise', 'Size_GarageType']])
+# ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+#                                                 df_variables_included[['Area_Size','Lottery_Converted', \
+#                                                     'Size_Franchise']])
 # ** ---------------------------without size, full model
 # ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
 #                                                 df_variables_included[['Rental_Month','Lottery_Converted', \
@@ -573,7 +576,7 @@ ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
 
 # print(ols.summary())
 
-residuals = ols.resid
+# residuals = ols.resid
 # print(residuals)
 # ** residuals distribution plot
 mu = np.mean(residuals)
@@ -584,7 +587,7 @@ plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) * \
     np.exp( - (bins - mu)**2 / (2 * sigma**2) ),linewidth=2, color='r')
 plt.show()
 
-def plot_residulas_against_var(residual, df, *arg):
+def plot_residulas_against_var(residual, *arg):
     var_num = len(arg)
     if var_num < 3:
         col_num = var_num
@@ -597,23 +600,27 @@ def plot_residulas_against_var(residual, df, *arg):
     
     for row in range(row_num):
         for col in range(col_num):
-            axs[row, col].plot(df[arg[var_index]], residual, 'bv', mfc='red')
-            if df[arg[var_index]].name == 'Area_Size':
+            axs[row, col].plot(arg[var_index], residual, 'bv', mfc='red')
+            if arg[var_index].name == 'Area_Size':
                 axs[row, col].set_xlim(0, 3000)
-            elif df[arg[var_index]].name == 'Rental_Month':
+            elif arg[var_index].name == 'Rental_Month':
                 axs[row, col].set_xlim(0, 7000)
-            elif df[arg[var_index]].name == 'Year':
+            elif arg[var_index].name == 'DOM':
+                axs[row, col].set_xlim(0, 500)
+            elif arg[var_index].name == 'Year':
                 axs[row, col].set_xlim(2000, 2020)
+            elif arg[var_index].name == 'Size_Franchise' or arg[var_index].name == 'Size_GarageType':
+                axs[row, col].set_xlim(0, 4000)
             else:
                 axs[row, col].set_xlim(-1, 2)
-            axs[row, col].set_xlabel(df[arg[var_index]].name)
+            axs[row, col].set_xlabel(arg[var_index].name)
             axs[row, col].set_ylabel('Residual')
-            axs[row, col].set_title(df[arg[var_index]].name)
+            axs[row, col].set_title(arg[var_index].name)
             var_index += 1
             if var_index == var_num:
                 break
     fig.subplots_adjust(left=0.08, right=0.98, bottom=0.05, top=0.9,
-                    hspace=0.7, wspace=0.7)
+                    hspace=0.9, wspace=0.7)
     plt.show()
 
 # plot_residulas_against_var(residuals, df_variables_included, 'Area_Size','Lottery_Converted', \
@@ -626,3 +633,18 @@ def plot_residulas_against_var(residual, df, *arg):
 #                                     'Days_Open_5', 'Days_Open_6', 'Days_Open_7')
 # plot_residulas_against_var(residuals, df_variables_included, 'Area_Size','Lottery_Converted', \
 #                                                 'Size_Franchise', 'Size_GarageType')
+
+# ** ---------------------------------without rental
+# plot_residulas_against_var(residuals, df['Area_Size'], df['DOM'], df['Franchise_Converted'], \
+#                                                 df['Garage_Type_Converted'], df['Lottery_Converted'], \
+#                                                 df['Occupation_Converted'], df['Year'], \
+#                                     df['Days_Open_5'], df['Days_Open_6'], df['Days_Open_7'], \
+#                                         df_variables_included['Size_Franchise'], \
+#                                         df_variables_included['Size_GarageType'])
+# ** ---------------------------------without size
+# plot_residulas_against_var(residuals, df['Rental_Month'], df['DOM'], df['Franchise_Converted'], \
+#                                                 df['Garage_Type_Converted'], df['Lottery_Converted'], \
+#                                                 df['Occupation_Converted'], df['Year'], \
+#                                     df['Days_Open_5'], df['Days_Open_6'], df['Days_Open_7'], \
+#                                         df_variables_included['Size_Franchise'], \
+#                                         df_variables_included['Size_GarageType'])
