@@ -393,7 +393,7 @@ def t_test_results_display(df, variable, price_per_square_feet=False):
 # t_test_results_display(df, 'Garage_Type_Converted')
 # t_test_results_display(df, 'Lottery_Converted')
 # t_test_results_display(df, 'Occupation_Converted')
-t_test_results_display(df, 'City_Converted')
+# t_test_results_display(df, 'City_Converted')
 # print('\n')
 # print('Sold Price Per Square Feet:')
 # t_test_results_display(df, 'Franchise_Converted', price_per_square_feet=True)
@@ -502,6 +502,50 @@ class RegressionAnalysis(Analysis):
 
     def calculate_sum_of_squares(self, data):
         return super().calculate_sum_of_squares(data)
+    
+    def find_var_with_smallest_p(self, p_values):
+        mini = 0
+        initial = True
+        for key, value in p_values.items():
+            if key == 'const':
+                continue
+            else:
+                if initial:
+                    mini = value
+                    var = key
+                initial = False
+                if value < mini:
+                    mini = value
+                    var = key
+        return var
+
+    def enter_new_var(self, y, X, entered_vars):
+        var_candidates = {}
+        for var in X.columns:
+            for entered_var in entered_vars:
+                if var == entered_var:
+                    continue
+                else:
+                    ols = self.linear_regression(y, X[entered_vars + [var]])
+                    p_values = ols.pvalues
+                    var_candidates[var] = p_values[var]
+        var_enter = self.find_var_with_smallest_p(var_candidates)
+        if var_candidates[var_enter] < 0.1:
+            entered_vars.append(var_enter)
+        return entered_vars
+        
+    def step_wise(self, y, X, p_criteria=0.15):
+        ols = self.linear_regression(y, X)
+        p_values = {}
+        for index in ols.pvalues.index:
+            p_values[index] = ols.pvalues[index]
+
+        first_var = self.find_var_with_smallest_p(p_values)
+        entered_vars = []
+        entered_vars.append(first_var)
+        entered_vars = self.enter_new_var(y, X, entered_vars)
+        # self.enter_new_var(y, X, entered_vars)
+        return entered_vars
 
 df_variables_included['Size_Franchise'] = df['Area_Size'] * \
                                             df['Franchise_Converted']
@@ -556,9 +600,13 @@ regression_analysis = RegressionAnalysis(df_variables_included)
 #                                                 'Occupation_Converted', 'Year', \
 #                                     'Days_Open_5', 'Days_Open_6', 'Days_Open_7']])
 # ** ---------------------------without size, reduced model
-# ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
-#                                                 df_variables_included[['Rental_Month','Lottery_Converted', \
-#                                                   'Occupation_Converted']])
+ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+                                                df_variables_included[['Rental_Month','Lottery_Converted', \
+                                                  'Occupation_Converted']])
+p_smallest = regression_analysis.step_wise(df_variables_included.iloc[:, 0], \
+                                                df_variables_included[['Rental_Month','Lottery_Converted', \
+                                                  'Occupation_Converted']])
+print(p_smallest)
 # ** ---------------------------without size, reduced model, with variables related to size, mutilplying size
 # ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
 #                                                 df_variables_included[['Rental_Month','Lottery_Converted', \
@@ -574,9 +622,9 @@ regression_analysis = RegressionAnalysis(df_variables_included)
 #                                                 'Occupation_Converted']])
 # print(df_variables_included['Rental_per_SquareFeet'])
 
-# print(ols.summary())
+print(ols.summary())
 
-# residuals = ols.resid
+residuals = ols.resid
 # print(residuals)
 # ** residuals distribution plot
 mu = np.mean(residuals)
@@ -585,7 +633,7 @@ sigma = np.sqrt(regression_analysis.calculate_sum_of_squares(residuals) / len(re
 count, bins, ignored = plt.hist(residuals, 30, density=True)
 plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) * \
     np.exp( - (bins - mu)**2 / (2 * sigma**2) ),linewidth=2, color='r')
-plt.show()
+# plt.show()
 
 def plot_residulas_against_var(residual, *arg):
     var_num = len(arg)
