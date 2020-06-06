@@ -506,6 +506,7 @@ class RegressionAnalysis(Analysis):
     def find_var_with_smallest_p(self, p_values):
         mini = 0
         initial = True
+        var = None
         for key, value in p_values.items():
             if key == 'const':
                 continue
@@ -519,42 +520,55 @@ class RegressionAnalysis(Analysis):
                     var = key
         return var
 
-    def enter_new_var(self, y, X, entered_vars):
+    def enter_new_var(self, y, X, entered_vars, dropped_vars):
         var_candidates = {}
         for var in X.columns:
-            for entered_var in entered_vars:
-                if var == entered_var:
-                    continue
-                else:
+            if var not in entered_vars or var not in dropped_vars:
                     ols = self.linear_regression(y, X[entered_vars + [var]])
                     p_values = ols.pvalues
                     var_candidates[var] = p_values[var]
+
         var_enter = self.find_var_with_smallest_p(var_candidates)
-        if var_candidates[var_enter] < 0.1:
-            entered_vars.append(var_enter)
-        return entered_vars
-    
+        try:
+            if var_candidates[var_enter] < 0.1:
+                entered_vars.append(var_enter)
+                stop = False
+                return entered_vars, stop
+            else:
+                stop = True
+                return entered_vars, stop
+        except:
+            if var_enter == None:
+                stop = True
+                return entered_vars, stop
+
     def vars_drop(self, y, X, entered_vars, p_criteria):
         ols = self.linear_regression(y, X[entered_vars])
         p_values = ols.pvalues
+        dropped_vars = []
         for index in p_values.index:
             if p_values[index] > p_criteria and index != 'const':
                 entered_vars.remove(index)
-        return entered_vars
+                dropped_vars.append(index)
+        return entered_vars, dropped_vars
 
-    def step_wise(self, y, X, p_criteria=0.15):
+    def stepwise_regression(self, y, X, p_criteria=0.15):
         ols = self.linear_regression(y, X)
         p_values = {}
+        # ** convert to dictionary
         for index in ols.pvalues.index:
             p_values[index] = ols.pvalues[index]
 
         first_var = self.find_var_with_smallest_p(p_values)
         entered_vars = []
+        dropped_vars = []
         entered_vars.append(first_var)
-        entered_vars = self.enter_new_var(y, X, entered_vars)
-        new_entered_vars = self.vars_drop(y, X, entered_vars, p_criteria)
-        # self.enter_new_var(y, X, entered_vars)
-        return entered_vars
+        while True:
+            entered_vars, stop = self.enter_new_var(y, X, entered_vars, dropped_vars)
+            if stop == True:
+                ols = self.linear_regression(y, X[entered_vars])
+                return ols
+            new_entered_vars, dropped_vars = self.vars_drop(y, X, entered_vars, p_criteria)
 
 df_variables_included['Size_Franchise'] = df['Area_Size'] * \
                                             df['Franchise_Converted']
@@ -609,13 +623,15 @@ regression_analysis = RegressionAnalysis(df_variables_included)
 #                                                 'Occupation_Converted', 'Year', \
 #                                     'Days_Open_5', 'Days_Open_6', 'Days_Open_7']])
 # ** ---------------------------without size, reduced model
-ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
-                                                df_variables_included[['Rental_Month','Lottery_Converted', \
-                                                  'Occupation_Converted']])
-p_smallest = regression_analysis.step_wise(df_variables_included.iloc[:, 0], \
-                                                df_variables_included[['Rental_Month','Lottery_Converted', \
-                                                  'Occupation_Converted']])
-print(p_smallest)
+# ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
+#                                                 df_variables_included[['Rental_Month','Lottery_Converted', \
+#                                                   'Occupation_Converted']])
+
+ols = regression_analysis.stepwise_regression(df_variables_included.iloc[:, 0], \
+                                                df_variables_included[['Area_Size','Lottery_Converted', \
+                                                'Occupation_Converted', 'Year', \
+                                    'Days_Open_5', 'Days_Open_6', 'Days_Open_7']])
+print(ols.summary())
 # ** ---------------------------without size, reduced model, with variables related to size, mutilplying size
 # ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
 #                                                 df_variables_included[['Rental_Month','Lottery_Converted', \
@@ -631,7 +647,7 @@ print(p_smallest)
 #                                                 'Occupation_Converted']])
 # print(df_variables_included['Rental_per_SquareFeet'])
 
-print(ols.summary())
+# print(ols.summary())
 
 residuals = ols.resid
 # print(residuals)
@@ -699,9 +715,9 @@ def plot_residulas_against_var(residual, *arg):
 #                                         df_variables_included['Size_Franchise'], \
 #                                         df_variables_included['Size_GarageType'])
 # ** ---------------------------------without size
-# plot_residulas_against_var(residuals, df['Rental_Month'], df['DOM'], df['Franchise_Converted'], \
-#                                                 df['Garage_Type_Converted'], df['Lottery_Converted'], \
-#                                                 df['Occupation_Converted'], df['Year'], \
-#                                     df['Days_Open_5'], df['Days_Open_6'], df['Days_Open_7'], \
-#                                         df_variables_included['Size_Franchise'], \
-#                                         df_variables_included['Size_GarageType'])
+plot_residulas_against_var(residuals, df['Rental_Month'], df['DOM'], df['Franchise_Converted'], \
+                                                df['Garage_Type_Converted'], df['Lottery_Converted'], \
+                                                df['Occupation_Converted'], df['Year'], \
+                                    df['Days_Open_5'], df['Days_Open_6'], df['Days_Open_7'], \
+                                        df_variables_included['Size_Franchise'], \
+                                        df_variables_included['Size_GarageType'])
