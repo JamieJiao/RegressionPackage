@@ -533,7 +533,15 @@ class RegressionAnalysis(Analysis):
         if var_candidates[var_enter] < 0.1:
             entered_vars.append(var_enter)
         return entered_vars
-        
+    
+    def vars_drop(self, y, X, entered_vars, p_criteria):
+        ols = self.linear_regression(y, X[entered_vars])
+        p_values = ols.pvalues
+        for index in p_values.index:
+            if p_values[index] > p_criteria and index != 'const':
+                entered_vars.remove(index)
+        return entered_vars
+
     def step_wise(self, y, X, p_criteria=0.15):
         ols = self.linear_regression(y, X)
         p_values = {}
@@ -544,6 +552,7 @@ class RegressionAnalysis(Analysis):
         entered_vars = []
         entered_vars.append(first_var)
         entered_vars = self.enter_new_var(y, X, entered_vars)
+        new_entered_vars = self.vars_drop(y, X, entered_vars, p_criteria)
         # self.enter_new_var(y, X, entered_vars)
         return entered_vars
 
