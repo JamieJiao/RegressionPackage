@@ -651,7 +651,6 @@ ols = regression_analysis.stepwise_regression(df_variables_included.iloc[:, 0], 
 print(ols.summary())
 
 residuals = ols.resid
-print(type(residuals))
 # ** residuals distribution plot
 mu = np.mean(residuals)
 sigma = np.sqrt(regression_analysis.calculate_sum_of_squares(residuals) / len(residuals))
@@ -718,7 +717,7 @@ def plot_residulas_against_var(residual, *arg):
 #                                         df_variables_included['Size_Franchise'], \
 #                                         df_variables_included['Size_GarageType'])
 # ** ---------------------------------without size
-plot_residulas_against_var(residuals, df['Sold_Price'], df['Rental_Month'], df['DOM'], df['Franchise_Converted'], \
+plot_residulas_against_var(residuals,df['Rental_Month'], df['DOM'], df['Franchise_Converted'], \
                                                 df['Garage_Type_Converted'], df['Lottery_Converted'], \
                                                 df['Occupation_Converted'], df['Year'], \
                                     df['Days_Open_5'], df['Days_Open_6'], df['Days_Open_7'], \
