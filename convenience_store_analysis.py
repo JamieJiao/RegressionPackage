@@ -353,10 +353,10 @@ try:
 except:
     pass
 # ** find which relationship between Sold_Price and other variables
-results.plot(df['Sold_Price'], df['Area_Size'], df['DOM'], df['Rental_Month'], \
-            df['Franchise_Dummy'], df['Garage_Type_Dummy'], \
-            df['Lottery_Dummy'], df['Occupation_Dummy'], df['Days_Open_5'], \
-            df['Days_Open_6'], df['Days_Open_7'], scatter_plot=True)
+# results.plot(df['Sold_Price'], df['Area_Size'], df['DOM'], df['Rental_Month'], \
+#             df['Franchise_Dummy'], df['Garage_Type_Dummy'], \
+#             df['Lottery_Dummy'], df['Occupation_Dummy'], df['Days_Open_5'], \
+#             df['Days_Open_6'], df['Days_Open_7'], scatter_plot=True)
 # ** check if there is time effect
 # results.scatter_plot(df['Year'], df['Sold_Price'])
 
@@ -422,8 +422,29 @@ def correlation_display(df, variable1, variable2, price_per_square_feet=False):
     correlation, p_value =  results.correlation_results(data1, data2)
     print('{} {}: correlation: {} p_value: {}'.format(variable1, variable2, correlation, p_value))
 
+def correlation_matrix_display(df, *arg, price_per_square_feet=False):
+    df_corr_matrix = pd.DataFrame(index=arg, columns=arg)
+    
+    row = 0
+    for index in df_corr_matrix.index:
+        for col in df_corr_matrix.columns:
+            data1 = df[index]
+            data2 = df[col]
+            try:
+                correlation, p_value = results.correlation_results(data1, data2)
+                correlation = round(correlation, 4)
+                p_value = round(p_value, 4)
+            except:
+                # ** when same vars, correlation = 1
+                # ** the denominator(1 - correlation) = 0 in calculating t value
+                correlation = 1
+                p_value = 0.0
+            df_corr_matrix.iloc[row][col] = (correlation, p_value)
+        row = row + 1
+
+    return df_corr_matrix
+
 # ** correlation check
-# print('correlation with sold price:')
 # correlation_display(df, 'Rental_Month', 'Sold_Price')
 # correlation_display(df, 'DOM', 'Sold_Price')
 # correlation_display(df, 'Area_Size', 'Sold_Price')
@@ -436,11 +457,16 @@ def correlation_display(df, variable1, variable2, price_per_square_feet=False):
 # correlation_display(df, 'Year', 'Sold_Price', price_per_square_feet=True)
 # print('\n')
 
+# ** correlation matrix for checking collinearity problems
+corr_matrix = correlation_matrix_display(df, 'Rental_Month', 'Sold_Price', 'Lottery_Dummy', \
+                                        'Occupation_Dummy', 'Year')
+print(corr_matrix)
+
 # ** anova test
 open_days_5 = df.loc[df['Days_Open_5'] == 1]['Sold_Price']
 open_days_6 = df.loc[df['Days_Open_6'] == 1]['Sold_Price']
 open_days_7 = df.loc[df['Days_Open_7'] == 1]['Sold_Price']
-print('mean(5, 6, 7):', open_days_5.mean(), open_days_6.mean(), open_days_7.mean())
+# print('mean(5, 6, 7):', open_days_5.mean(), open_days_6.mean(), open_days_7.mean())
 # f, p = results.anova_test(open_days_5, open_days_6, open_days_7)
 # print('anova test for open days 5, 6, 7 with sold price: ', f, p)
 # open_days_5_size_price = df.loc[df['Days_Open_5'] == 1]['Sold_Price']/df.loc[df['Days_Open_5'] == 1]['Area_Size']
