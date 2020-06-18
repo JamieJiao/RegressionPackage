@@ -353,7 +353,7 @@ try:
 except:
     pass
 # ** find which relationship between Sold_Price and other variables
-# results.plot(df['Sold_Price'], df['Area_Size'], df['DOM'], df['Rental_Month'], \
+# results.plot(df['Sold_Price'], df['Area_Size'], df['DOM'], df['Rental_Month'], df['Year'], \
 #             df['Franchise_Dummy'], df['Garage_Type_Dummy'], \
 #             df['Lottery_Dummy'], df['Occupation_Dummy'], df['Days_Open_5'], \
 #             df['Days_Open_6'], df['Days_Open_7'], scatter_plot=True)
@@ -457,10 +457,10 @@ def correlation_matrix_display(df, *arg, price_per_square_feet=False):
 # correlation_display(df, 'Year', 'Sold_Price', price_per_square_feet=True)
 # print('\n')
 
-# ** correlation matrix for checking collinearity problems
-corr_matrix = correlation_matrix_display(df, 'Rental_Month', 'Sold_Price', 'Lottery_Dummy', \
+# ** Pearson correlation matrix for checking collinearity problems
+corr_matrix = correlation_matrix_display(df, 'Rental_Month', 'Area_Size', 'Lottery_Dummy', \
                                         'Occupation_Dummy', 'Year')
-print(corr_matrix)
+# print(corr_matrix)
 
 # ** anova test
 open_days_5 = df.loc[df['Days_Open_5'] == 1]['Sold_Price']
@@ -594,12 +594,19 @@ df_variables_included['Size_GarageType'] =df['Garage_Type_Dummy'] * \
 df_variables_included['Size_Franchise_Order2'] = df_variables_included['Size_Franchise']**2
 regression_analysis = RegressionAnalysis(df_variables_included)
 
-df_vif = df_variables_included[['Area_Size', 'Lottery_Dummy', \
-                                        'Occupation_Dummy', 'Days_Open_5', 'Size_Franchise_Order2']]
-vifs, r_squares = regression_analysis.vif_results(df_vif, 'Area_Size', 'Lottery_Dummy', \
-                                        'Occupation_Dummy', 'Days_Open_5', 'Size_Franchise_Order2')
-print('r squares:', r_squares, '\n')
-print('VIF:', vifs)
+# ** check VIFs for vars we use
+X = df_variables_included[['Area_Size', 'Lottery_Dummy', \
+                                        'Occupation_Dummy', 'Rental_Month', 'Year']]
+vifs, r_squares = regression_analysis.vif_results(X, 'Area_Size', 'Lottery_Dummy', \
+                                        'Occupation_Dummy', 'Rental_Month', 'Year')
+# ** check VIFs for the final model
+# X = df_variables_included[['Area_Size', 'Lottery_Dummy', \
+#                                         'Occupation_Dummy', 'Days_Open_5', 'Size_Franchise_Order2']]
+# vifs, r_squares = regression_analysis.vif_results(X, 'Area_Size', 'Lottery_Dummy', \
+#                                         'Occupation_Dummy', 'Days_Open_5', 'Size_Franchise_Order2')
+
+# print('r squares:', r_squares, '\n')
+# print('VIF:', vifs)
 
 # ** ---------------------------wonder if there is correlation between size 
 # ** ---------------------------and size multiplying Franchise and garage
@@ -615,9 +622,8 @@ print('VIF:', vifs)
 #                                                 df_variables_included.iloc[:, 1:])
 # ** ---------------------------regression reduced model
 # ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
-#                                                 df_variables_included[['Area_Size','Rental_Month', \
-#                                                     'Lottery_Dummy', \
-#                                                 'Occupation_Dummy']])
+#                                                 df_variables_included[['Area_Size', \
+#                                                 'Occupation_Dummy', 'Year', 'Size_Franchise_Order2']])
 # ** ---------------------------regression without rental (variable rental has too many missing values)
 # ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
 #                                                 df_variables_included[['Area_Size','Lottery_Dummy', \
@@ -645,11 +651,11 @@ print('VIF:', vifs)
 #                                                   'Occupation_Dummy']])
 
 ols = regression_analysis.stepwise_regression(df_variables_included.iloc[:, 0], \
-                                                df_variables_included[['Area_Size','Lottery_Dummy', \
-                                                'Occupation_Dummy', 'Year', \
+                                                df_variables_included[['Area_Size', \
+                                                'Occupation_Dummy', 'Lottery_Dummy', \
                                     'Days_Open_5', 'Days_Open_6', 'Days_Open_7', \
                                         'Size_Franchise', 'Size_GarageType', 'Size_Franchise_Order2']])
-# print(ols.summary())
+
 # ** ---------------------------without size, reduced model, with variables related to size, mutilplying size
 # ols = regression_analysis.linear_regression(df_variables_included.iloc[:, 0], \
 #                                                 df_variables_included[['Rental_Month','Lottery_Dummy', \
@@ -665,16 +671,16 @@ ols = regression_analysis.stepwise_regression(df_variables_included.iloc[:, 0], 
 #                                                 'Occupation_Dummy']])
 # print(df_variables_included['Rental_per_SquareFeet'])
 
-print(ols.summary())
+# print(ols.summary())
 
 residuals = ols.resid
 # ** residuals distribution plot
-mu = np.mean(residuals)
-sigma = np.sqrt(regression_analysis.calculate_sum_of_squares(residuals) / len(residuals))
+# mu = np.mean(residuals)
+# sigma = np.sqrt(regression_analysis.calculate_sum_of_squares(residuals) / len(residuals))
 
-count, bins, ignored = plt.hist(residuals, 30, density=True)
-plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) * \
-    np.exp( - (bins - mu)**2 / (2 * sigma**2) ),linewidth=2, color='r')
+# count, bins, ignored = plt.hist(residuals, 30, density=True)
+# plt.plot(bins, 1/(sigma * np.sqrt(2 * np.pi)) * \
+#     np.exp( - (bins - mu)**2 / (2 * sigma**2) ),linewidth=2, color='r')
 # plt.show()
 
 def plot_residulas_against_var(residual, *arg):
@@ -734,10 +740,58 @@ def plot_residulas_against_var(residual, *arg):
 #                                         df_variables_included['Size_Franchise'], \
 #                                         df_variables_included['Size_GarageType'])
 # ** ---------------------------------without size
-plot_residulas_against_var(residuals,df['Rental_Month'], df['DOM'], df['Franchise_Dummy'], \
-                                                df['Garage_Type_Dummy'], df['Lottery_Dummy'], \
-                                                df['Occupation_Dummy'], df['Year'], \
-                                    df['Days_Open_5'], df['Days_Open_6'], df['Days_Open_7'], \
-                                        df_variables_included['Size_Franchise'], \
-                                        df_variables_included['Size_GarageType'], \
-                                            df_variables_included['Size_Franchise_Order2'])
+# plot_residulas_against_var(residuals,df['Rental_Month'], df['DOM'], df['Franchise_Dummy'], \
+#                                                 df['Garage_Type_Dummy'], df['Lottery_Dummy'], \
+#                                                 df['Occupation_Dummy'], df['Year'], \
+#                                     df['Days_Open_5'], df['Days_Open_6'], df['Days_Open_7'], \
+#                                         df_variables_included['Size_Franchise'], \
+#                                         df_variables_included['Size_GarageType'], \
+#                                             df_variables_included['Size_Franchise_Order2'])
+
+
+from datetime import timedelta, date
+from datetime import datetime
+import statsmodels.api as sm
+df_time = df[['Sold_Price', 'Year']].set_index('Year')
+lag = 30
+# fig, ax = plt.subplots(2,1,figsize=(10,7))
+# fig = sm.graphics.tsa.plot_acf(df_time, lags=lag, ax=ax[0])
+# fig = sm.graphics.tsa.plot_pacf(df_time, lags=lag, ax=ax[1])
+# plt.plot(df_time)
+# plt.show()
+
+adf = sm.tsa.adfuller(df_time['Sold_Price'],regression='ct')
+# print('adf value:', adf[0], 'p value', adf[1])
+
+n = df_variables_included.shape[0]
+train_n = math.ceil(n*0.75)
+valid_n = n - train_n
+
+exog = df_variables_included[['Year', 'Area_Size', 'Lottery_Dummy', 'Occupation_Dummy', \
+                                    'Days_Open_5', 'Size_Franchise_Order2']]
+exog_train = exog[:train_n]
+y_train = df_variables_included['Sold_Price'][:train_n]
+mod = sm.tsa.statespace.SARIMAX(y_train,
+                                        order=(1, 0, 1, 0),
+                                        seasonal_order=(0, 0, 0, 0),
+                                        exog = exog_train,
+                                        enforce_stationarity=False,
+                                        enforce_invertibility=False)
+
+results = mod.fit()
+# print(result.summary())
+results.plot_diagnostics(figsize=(10, 6))
+# plt.show()
+# pred_dynamic = results.get_prediction(dynamic=True, full_results=True)
+# y_forecasted_dynamic = pred_dynamic.predicted_mean
+steps_ahead = 30
+y_test = df_variables_included['Sold_Price'][train_n-1:]
+pred_step_ahead = results.predict(train_n, n, exog = exog[train_n-1:])
+
+lis = []
+for i in range(35):
+    d = (pred_step_ahead.iloc[i] - y_test.iloc[i])**2
+    lis.append(d)
+mse = sum(lis)/len(lis)
+# print(math.sqrt(mse))
+print(y_test.mean())
