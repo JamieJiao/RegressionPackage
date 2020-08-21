@@ -142,6 +142,52 @@ class Analysis:
 
         return df_corr_matrix
 
+    def find_distinct_categories(self, data1, data2):
+        categories_data1 = []
+        categories_data2 = []
+        for i in range(len(data1)):
+            if data1[i] not in categories_data1:
+                categories_data1.append(data1[i])
+            if data2[i] not in categories_data2:
+                categories_data2.append(data2[i])
+
+        return categories_data1, categories_data2
+    
+    def count_values(self, data1, data2, value1, value2):
+        count = 0
+        size = len(data1)
+        for i in range(size):
+            if data1[i] == value1 and data2[i] == value2:
+                count = count + 1
+        return count
+    
+    def contingency_table_create(self, data1, data2, data1_category_n=2, data2_category_n=2):
+        categories_data1, categories_data2 = self.find_distinct_categories(data1, data2)
+        shape = (data1_category_n, data2_category_n)
+        contingency_table = np.zeros(shape)
+        for c in range(data1_category_n):
+            for r in range(data2_category_n):
+                contingency_table[c][r] = self.count_values(data1, data2, categories_data1[c], categories_data2[r])
+        return contingency_table
+
+    def chi_square_test(self, data1, data2, data1_category_n=2, data2_category_n=2, alpha=0.05):
+        n = len(data1)
+        df = (data1_category_n - 1) * (data2_category_n - 1)
+        contingency_table = self.contingency_table_create(data1, data2)
+        column_num = contingency_table.shape[0]
+        row_num = contingency_table.shape[1]
+        column_totals = [sum(contingency_table[:, x]) for x in range(column_num)]
+        row_totals = [sum(contingency_table[x, :]) for x in range(row_num)]
+
+        X_square = 0
+        for c in range(column_num):
+            for r in range(row_num):
+                expected_value_mle = (column_totals[r]*row_totals[c])/n
+                deviation = (contingency_table[c][r] - expected_value_mle)**2/expected_value_mle
+                X_square = X_square + deviation
+        p_value = 1 - stats.chi2.cdf(x=X_square, df=df)
+        return X_square, p_value
+        
     def total_mean_and_obs(self, *arg):
         total = 0
         total_obs = 0
