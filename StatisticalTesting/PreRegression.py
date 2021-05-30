@@ -5,7 +5,7 @@ import math
 from scipy import stats
 
 
-class Analysis:
+class statsanalysis:
     def __init__(self, df):
         self.df = df    
 
