@@ -8,7 +8,7 @@ from scipy import stats
 class statsanalysis:
     def __init__(self, df):
         self.df = df    
-
+    # scatter and box plot for a dataset
     def loop_plot(self, plot_col_num, plot_row_num, axs, y=None, *arg, box_plot=False, \
         scatter_plot=False):
         position = 0
@@ -23,8 +23,8 @@ class statsanalysis:
                         axs[row, col].boxplot(var)
                         axs[row, col].set_title(df_col_name)
                     except:
-                        # ** when var number less than subplots column number
-                        # ** subplots then is one dimentional
+                        # when var number less than subplots column number
+                        # subplots then is one dimentional
                         axs[col].boxplot(var)
                         axs[col].set_title(df_col_name)
                 if scatter_plot:
@@ -47,13 +47,14 @@ class statsanalysis:
         fig.subplots_adjust(left=0.08, right=0.98, bottom=0.05, top=0.9,
                     hspace=0.7, wspace=0.3)
         plt.show()
-
+    
+    # calculate quartiles to find outliers
     def calculate_whiskers(self, df_series, obs_num):
         Q1_quartile = round(obs_num * 0.25)
         Q3_quartile = round(obs_num * 0.75)
         Q1_quartile_value = df_series.iloc[Q1_quartile]
         Q3_quartile_value = df_series.iloc[Q3_quartile]
-        # **default value
+        # default value
         whis = 1.5
         Q3_Q1_range = Q3_quartile_value - Q1_quartile_value
         lower_whisker = Q1_quartile_value - whis * (Q3_Q1_range)
@@ -77,7 +78,8 @@ class statsanalysis:
         for value in data:
             sum_of_squares.append((value - mean_value)**2)
         return sum(sum_of_squares)
-
+    
+    # t-test for checking if there is a significant difference between two categorical variables
     def t_test(self, data1, data2):
         degree_of_freedom = len(data1) + len(data2) - 2
         mean_difference = np.mean(data1) - np.mean(data2)
@@ -94,20 +96,20 @@ class statsanalysis:
         data2_array = data2.values
         mean1 = np.mean(data1_array)
         mean2 = np.mean(data2_array)
-        # ** data1 and data2 are two variables, with same number of observations
+        # data1 and data2 are two variables, with same number of observations
         observation_num = len(data1_array)
         diff1 = (data1_array - mean1)
         diff2 = (data2_array - mean2)
         covariance = np.dot(diff1, diff2)
         return covariance
-
+    
     def caculate_correlation(self, data1, data2):
         variance1 = self.calculate_sum_of_squares(data1)
         variance2 = self.calculate_sum_of_squares(data2)
         covariance = self.caculate_covariance(data1, data2)
         correlation = covariance/math.sqrt(variance1 * variance2)
         return correlation
-
+    
     def correlation_significance(self, data1, data2):
         correlation = self.caculate_correlation(data1, data2)
         degree_of_freedom = len(data1) - 2
@@ -120,6 +122,7 @@ class statsanalysis:
         p_value = self.correlation_significance(data1, data2)
         return correlation, p_value
     
+    # check correlation matrix
     def correlation_matrix_display(self, *arg):
         df_corr_matrix = pd.DataFrame(index=arg, columns=arg)
         
@@ -133,8 +136,8 @@ class statsanalysis:
                     correlation = round(correlation, 4)
                     p_value = round(p_value, 4)
                 except:
-                    # ** when same vars, correlation = 1
-                    # ** the denominator(1 - correlation) = 0 in calculating t value
+                    # when same vars, correlation = 1
+                    # the denominator(1 - correlation) = 0 in calculating t value
                     correlation = 1
                     p_value = 0.0
                 df_corr_matrix.iloc[row][col] = (correlation, p_value)
@@ -153,6 +156,7 @@ class statsanalysis:
 
         return categories_data1, categories_data2
     
+    # chi-square test for testing the dependence of two categorical variables
     def count_values(self, data1, data2, value1, value2):
         count = 0
         size = len(data1)
@@ -187,7 +191,8 @@ class statsanalysis:
                 X_square = X_square + deviation
         p_value = 1 - stats.chi2.cdf(x=X_square, df=df)
         return X_square, p_value
-        
+    
+    # anova test for testing the dependence of a quantitative variable on one or more qualitative variables
     def total_mean_and_obs(self, *arg):
         total = 0
         total_obs = 0
@@ -198,7 +203,7 @@ class statsanalysis:
         return total_obs, mean
 
     def anova_test(self, *arg):
-        # **sstr: treatment_sum_of_squares, sse: error sum of squares
+        # sstr: treatment_sum_of_squares, sse: error sum of squares
         number_of_factor = len(arg)
         sse = 0
         sstr = 0
